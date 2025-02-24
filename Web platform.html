@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customizable Platform</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; }
+        .tabs { display: flex; justify-content: center; gap: 10px; margin: 20px 0; flex-wrap: wrap; }
+        .tab { padding: 10px 20px; background: #007BFF; color: white; cursor: pointer; border-radius: 5px; }
+        .tab.active { background: #0056b3; }
+        .container { display: none; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
+        .container.active { display: grid; }
+        .site-box { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        .iframe-container { width: 100%; height: 250px; border: none; }
+        .visit-btn { display: block; margin-top: 10px; padding: 10px; background: #007BFF; color: white; text-decoration: none; border-radius: 5px; }
+        .visit-btn:hover { background: #0056b3; }
+        .add-btn { margin: 10px; padding: 10px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        .remove-btn { margin: 10px; padding: 10px; background: #dc3545; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        .remove-btn:hover { background: #c82333; }
+        .platform-name { margin: 20px; font-size: 2em; font-weight: bold; }
+        .input-section { margin-bottom: 20px; }
+        input[type="text"], input[type="url"] { padding: 10px; margin: 10px; width: 250px; }
+    </style>
+</head>
+<body>
+    <div class="input-section">
+        <label for="platformName">Enter your platform name: </label>
+        <input type="text" id="platformName" placeholder="Platform Name" />
+        <button class="add-btn" onclick="setPlatformName()">Set Platform Name</button>
+    </div>
+    <div class="platform-name" id="platformTitle">Custom Platform</div>
+    
+    <div class="tabs" id="tabs"></div>
+    <button class="add-btn" onclick="addNewTab()">+ Add New Tab</button>
+    <div id="tab-contents"></div>
+
+    <script>
+        let platformName = "Custom Platform";
+        let tabsData = {};
+
+        function setPlatformName() {
+            const name = document.getElementById("platformName").value;
+            if (name) {
+                platformName = name;
+                document.getElementById("platformTitle").innerText = platformName;
+            }
+        }
+
+        function setupTabs() {
+            const tabsContainer = document.getElementById("tabs");
+            const contentsContainer = document.getElementById("tab-contents");
+            tabsContainer.innerHTML = "";
+            contentsContainer.innerHTML = "";
+
+            Object.keys(tabsData).forEach((tabName, index) => {
+                const tab = document.createElement("div");
+                tab.classList.add("tab");
+                if (index === 0) tab.classList.add("active");
+                tab.innerText = tabName;
+                tab.onclick = () => switchTab(tabName);
+
+                const removeTabBtn = document.createElement("button");
+                removeTabBtn.classList.add("remove-btn");
+                removeTabBtn.innerText = "Remove Tab";
+                removeTabBtn.onclick = () => removeTab(tabName);
+                tab.appendChild(removeTabBtn);
+
+                tabsContainer.appendChild(tab);
+
+                const container = document.createElement("div");
+                container.classList.add("container");
+                if (index === 0) container.classList.add("active");
+                container.id = `tab-${tabName.replace(/\s/g, "-")}`;
+
+                tabsData[tabName].forEach((site, siteIndex) => {
+                    const siteBox = document.createElement("div");
+                    siteBox.classList.add("site-box");
+                    const isIframeable = isIframeSupported(site);
+                    if (isIframeable) {
+                        siteBox.innerHTML = `
+                            <iframe class="iframe-container" src="${site}"></iframe>
+                            <a class="visit-btn" href="${site}" target="_blank">Visit</a>
+                        `;
+                    } else {
+                        const siteName = new URL(site).hostname;
+                        siteBox.innerHTML = `
+                            <p>${siteName}</p>
+                            <a class="visit-btn" href="${site}" target="_blank">Visit</a>
+                        `;
+                    }
+
+                    const removeWebsiteBtn = document.createElement("button");
+                    removeWebsiteBtn.classList.add("remove-btn");
+                    removeWebsiteBtn.innerText = "Remove Website";
+                    removeWebsiteBtn.onclick = () => removeWebsite(tabName, siteIndex);
+                    siteBox.appendChild(removeWebsiteBtn);
+
+                    container.appendChild(siteBox);
+                });
+
+                const addSiteBtn = document.createElement("button");
+                addSiteBtn.classList.add("add-btn");
+                addSiteBtn.innerText = "+ Add Website";
+                addSiteBtn.onclick = () => addWebsite(tabName);
+                container.appendChild(addSiteBtn);
+
+                contentsContainer.appendChild(container);
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll(".tab").forEach(tab => {
+                tab.classList.toggle("active", tab.innerText === tabName);
+            });
+            document.querySelectorAll(".container").forEach(container => {
+                container.classList.toggle("active", container.id === `tab-${tabName.replace(/\s/g, "-")}`);
+            });
+        }
+
+        function addNewTab() {
+            const tabName = prompt("Enter new tab name:");
+            if (tabName && !tabsData[tabName]) {
+                tabsData[tabName] = [];
+                setupTabs();
+            }
+        }
+
+        function addWebsite(tabName) {
+            const siteURL = prompt("Enter website URL:");
+            if (siteURL) {
+                tabsData[tabName].push(siteURL);
+                setupTabs();
+            }
+        }
+
+        function removeTab(tabName) {
+            if (confirm(`Are you sure you want to remove the "${tabName}" tab?`)) {
+                delete tabsData[tabName];
+                setupTabs();
+            }
+        }
+
+        function removeWebsite(tabName, siteIndex) {
+            if (confirm(`Are you sure you want to remove this website from the "${tabName}" tab?`)) {
+                tabsData[tabName].splice(siteIndex, 1);
+                setupTabs();
+            }
+        }
+
+        function isIframeSupported(url) {
+            const nonIframeableDomains = ['pdf', 'docs.google', 'wikipedia', 'twitter', 'facebook'];
+            return !nonIframeableDomains.some(domain => url.includes(domain));
+        }
+
+        setupTabs();
+    </script>
+</body>
+</html>
